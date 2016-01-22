@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformLogBookMapper">
+    
+    <resultMap id="logbookModel" type="com.rds.platform.model.RdsPlatformLogBookModel">
+	</resultMap>
+	
+    <select id="queryPlatformLogBooks" resultMap="logbookModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_LogBook t
+    </select>
+    
+    <select id="queryPlatformLogBooksPageTotal" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) total
+		                  FROM tb_platform_LogBook t
+		                 where 1 =1 
+		                 <if test="loguser!=null and loguser!=''">
+		                     and loguser like '%${loguser}%'
+		                 </if>
+		                 <if test="classes!=null and classes!=''">
+		                	 and classes like '%${classes}%'
+		                 </if>
+		                 <if test="createtime!=null and createtime!=''">
+		               		 and createtime = to_date(#{createtime}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by createtime desc
+    </select>
+    
+    <select id="queryPlatformLogBooksPage" parameterType="map" resultMap="logbookModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+					       t.loguser,
+					       t.classes,
+					       to_char(t.createtime, 'yyyy-mm-dd') createtime,
+					       t.iserror,
+					       mark
+		                  FROM tb_platform_LogBook t
+		                 where 1 =1 
+		                 <if test="loguser!=null and loguser!=''">
+		                     and loguser like '%${loguser}%'
+		                 </if>
+		                 <if test="classes!=null and classes!=''">
+		                	 and classes like '%${classes}%'
+		                 </if>
+		                 <if test="createtime!=null and createtime!=''">
+		               		 and createtime = to_date(#{createtime}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by createtime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN >= #{start}
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformLogBookModel">
+        insert into TB_PLATFORM_LogBook(id,loguser,classes,createtime,iserror,mark) 
+        	values(sys_guid(),#{loguser},#{classes},to_date(#{createtime},'YYYY-MM-DD'),#{iserror},#{mark})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformLogBookModel">
+        update TB_PLATFORM_LogBook
+        	set loguser=#{loguser},
+        	createtime = to_date(#{createtime},'YYYY-MM-DD'),
+        	iserror = #{iserror},
+        	classes = #{classes},
+        	mark = #{mark}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_LogBook where id in (${params})
+    </delete>
+</mapper>

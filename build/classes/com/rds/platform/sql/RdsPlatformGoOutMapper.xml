@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformGoOutMapper">
+    
+    <resultMap id="gooutModel" type="com.rds.platform.model.RdsPlatformGoOutModel">
+	</resultMap>
+	
+    <select id="queryPlatformGoOuts" resultMap="gooutModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_GoOut t
+    </select>
+    
+    <select id="queryPlatformGoOutsPage" parameterType="map" resultMap="gooutModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+					       t.title,
+					       t.content,
+					       to_char(t.starttime, 'yyyy-mm-dd hh24:mi:ss') starttime,
+					       to_char(t.endtime, 'yyyy-mm-dd hh24:mi:ss') endtime,
+					       t.reguser,
+					       to_char(t.regtime, 'yyyy-mm-dd') regtime,
+					       t.goouter,
+					       t.approval,
+					       to_char(t.approvaltime, 'yyyy-mm-dd hh24:mi:ss') approvaltime,
+					       status
+		                  FROM tb_platform_GoOut t
+		                 where 1 =1 
+		                 <if test="title!=null and title!=''">
+		                     and title like '%${title}%'
+		                 </if>
+		                 <if test="content!=null and content!=''">
+		                	 and content like '%${content}%'
+		                 </if>
+		                 <if test="goouter!=null and goouter!=''">
+		               		 and goouter = #{goouter}
+		                 </if>
+		                 
+		                 order by regtime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformGoOutsPageTotal" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*) total
+		                  FROM tb_platform_GoOut t
+		                 where 1 =1 
+		                 <if test="title!=null and title!=''">
+		                     and title like '%${title}%'
+		                 </if>
+		                 <if test="content!=null and content!=''">
+		                	 and content like '%${content}%'
+		                 </if>
+		                 <if test="goouter!=null and goouter!=''">
+		               		 and goouter = #{goouter}
+		                 </if>
+		                 order by regtime desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformGoOutModel">
+        insert into TB_PLATFORM_GoOut(id,title,content,starttime,endtime,reguser,regtime,status,goouter) 
+        	values(sys_guid(),#{title},#{content},to_date(#{starttime},'YYYY-MM-DD hh24:mi:ss'),to_date(#{endtime},'YYYY-MM-DD hh24:mi:ss'),#{reguser},sysdate,#{status},#{goouter})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformGoOutModel">
+        update TB_PLATFORM_GoOut
+        	set title=#{title},
+        	starttime = to_date(#{starttime},'YYYY-MM-DD hh24:mi:ss'),
+        	endtime = to_date(#{endtime},'YYYY-MM-DD hh24:mi:ss'),
+        	content = #{content},
+        	status = #{status}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_GoOut where id in (${params})
+    </delete>
+    
+    <insert id="updateApproval" parameterType="com.rds.platform.model.RdsPlatformGoOutModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_GoOut set 
+    		approval ='${approval}',
+    		approvaltime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+</mapper>

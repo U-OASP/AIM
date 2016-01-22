@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformAlarmMapper">
+    
+    <resultMap id="alarmModel" type="com.rds.platform.model.RdsPlatformAlarmModel">
+	</resultMap>
+    
+    <select id="queryPlatformAlarmsPage" parameterType="map" resultMap="alarmModel">
+		 SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+	          FROM (SELECT t.alarmId as alarmId,
+	                       t.alarmTrackId as alarmTrackId,
+	                       t.occurTime as occurTime,
+	                       ds.value       severity,
+	                       t.message,
+	                       t.source,
+	                       da.value    as   alarmType,
+	                       t.moid as moId,
+	                       t.additionalInfo as additionalInfo
+	                  FROM TB_PLATFORM_ALARMS        t,
+	                       tb_platform_dic_alarmtype da,
+	                       tb_platform_dic_severity  ds
+	                 where t.alarmtype = da.key
+	                   and t.severity = ds.key
+	                 order by occurtime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformAlarmsPageTotal" parameterType="map" resultType="java.lang.Integer">
+		 SELECT count(*) total
+	                  FROM TB_PLATFORM_ALARMS        t,
+	                       tb_platform_dic_alarmtype da,
+	                       tb_platform_dic_severity  ds
+	                 where t.alarmtype = da.key
+	                   and t.severity = ds.key
+	                 order by occurtime desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformAlarmModel">
+        insert into TB_PLATFORM_ALARMS 
+        	values(#{alarmId},#{alarmTrackId},#{occurTime},#{severity},#{message},#{source},#{alarmType},#{moId},#{additionalInfo})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformAlarmModel">
+        update TB_PLATFORM_ALARMS
+        	set alarmtrackid=#{alarmTrackId},
+        	occurtime = #{occurTime},
+        	severity = #{severity},
+        	message = #{message},
+        	source = #{source},
+        	alarmtype = #{alarmType},
+        	additionalinfo = #{additionalInfo}
+        	 where alarmid = #{alarmId}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_NOTICE where id in (${params})
+    </delete>
+</mapper>

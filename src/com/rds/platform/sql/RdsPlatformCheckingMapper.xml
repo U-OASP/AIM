@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformCheckingMapper">
+    
+	
+	<resultMap id="checkingtotalModel" type="com.rds.platform.model.RdsPlatformCheckingTotalModel">
+	</resultMap>
+    
+    <insert id="updateCheckingIn" parameterType="map" useGeneratedKeys="false">
+        begin
+        insert into TB_PLATFORM_CHECKING(classes, userid, starttime, id)
+		  select t.classid, t.userid, sysdate, sys_guid() id
+		    from tb_platform_mine_classes t
+		   where userid = #{userid}
+		     and minedate = to_date(to_char(sysdate,'yyyy-mm-dd'), 'yyyy-mm-dd');
+		end;
+    </insert>
+    <insert id="updateCheckingOut" parameterType="map" useGeneratedKeys="false">
+        update TB_PLATFORM_CHECKING
+		   set endtime = sysdate
+		 where userid = #{userid}
+		   and to_char(starttime, 'yyyy-mm-dd') = to_char(sysdate, 'yyyy-mm-dd')
+    </insert>
+    <select id="queryPlatformCheckingTotal" parameterType="map" resultMap="checkingtotalModel">
+        select userid,username,
+	           sum((CASE
+	                 When ck.starttime is null or ck.endtime is null Then
+	                  0
+	                 Else
+	                  1
+	               End)) total
+	      from tb_platform_checking ck, tb_platform_classes cl,user_info ui
+	     where ck.classes = cl.id
+	       and to_char(ck.starttime, 'yyyy-mm') = #{month}
+	       and userid = #{userid}
+	       and userid = ui.user_id
+	     group by ui.username,userid
+    </select>
+    
+    <resultMap id="checkingtotalDetailsModel" type="com.rds.platform.model.RdsPlatformCheckingTotalDetailsModel">
+	</resultMap>
+    
+    <select id="queryPlatformCheckingTotalDetials" parameterType="map" resultMap="checkingtotalDetailsModel">
+        select ch.id,uf.username, cl.classname, to_char(ch.starttime,'yyyy-mm-dd hh24:mi:ss') starttime, to_char(ch.endtime,'yyyy-mm-dd hh24:mi:ss') endtime 
+		  from tb_platform_checking ch, tb_platform_classes cl, user_info uf
+		 where ch.classes = cl.id
+		   and ch.userid = uf.user_id
+		   and userid = #{userid}
+		   and (ch.starttime >= to_date('${month}'||'-01', 'yyyy-mm-dd') or
+		       ch.endtime > to_date('${month}'||'-01', 'yyyy-mm-dd'))
+		   and (ch.endtime <![CDATA[<=]]>
+		       add_months(trunc(to_date('${month}'||'-01', 'yyyy-mm-dd')), 1) or
+		       ch.starttime <![CDATA[<=]]>
+		       add_months(trunc(to_date('${month}'||'-01', 'yyyy-mm-dd')), 1))
+    </select>
+    
+    <update id="updatePlatformCheckingValues" parameterType="com.rds.platform.model.RdsPlatformCheckingTotalDetailsModel">
+    	update tb_platform_checking set id=#{id}
+    	<if test = "starttime!=null and starttime!=''" >
+			,starttime = to_date(#{starttime}, 'yyyy-mm-dd hh24:mi:ss')
+		</if> 
+    	<if test = "endtime!=null and endtime!=''" >
+			,endtime = to_date(#{endtime}, 'yyyy-mm-dd hh24:mi:ss')
+		</if> 
+    	
+    	where id = #{id}
+    </update>
+</mapper>

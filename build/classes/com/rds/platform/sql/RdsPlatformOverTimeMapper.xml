@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformOverTimeMapper">
+    
+    <resultMap id="overtimeModel" type="com.rds.platform.model.RdsPlatformOverTimeModel">
+	</resultMap>
+	
+    <select id="queryPlatformOverTimes" resultMap="overtimeModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_OverTime t
+    </select>
+    
+    <select id="queryPlatformOverTimesPage" parameterType="map" resultMap="overtimeModel">
+    	SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+		                       t.applyer,
+		                       t.otdsc,
+		                       to_char(t.otstarttime, 'yyyy-mm-dd hh24:mi:ss') otstarttime,
+		                       to_char(t.otendtime, 'yyyy-mm-dd hh24:mi:ss') otendtime,
+		                       to_char(t.predictendtime, 'yyyy-mm-dd hh24:mi:ss') predictendtime,
+		                       to_char(t.applytime, 'yyyy-mm-dd') applytime,
+		                       to_char(t.checktime, 'yyyy-mm-dd hh24:mi:ss') checktime,
+		                       checkidea,
+		                       status,
+		                       issure
+		                  FROM tb_platform_OverTime t
+		                  where 1 =1 
+		                 <if test="otdsc!=null and otdsc!=''">
+		                     and otdsc like '%${otdsc}%'
+		                 </if>
+		                 <if test="applytime!=null and applytime!=''">
+		                	 and to_char(t.applytime,'yyyy-mm-dd') = #{applytime}
+		                 </if>
+		                 order by applytime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformOverTimesPageTotal" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*)
+		                  FROM tb_platform_OverTime t
+		                  where 1 =1 
+		                 <if test="otdsc!=null and otdsc!=''">
+		                     and otdsc like '%${otdsc}%'
+		                 </if>
+		                 <if test="applytime!=null and applytime!=''">
+		                	 and to_char(t.applytime,'yyyy-mm-dd') = #{applytime}
+		                 </if>
+		                 order by applytime desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformOverTimeModel">
+        insert into TB_PLATFORM_OverTime(id,applyer,otdsc,otstarttime,predictendtime,applytime,status,issure) 
+        	values(sys_guid(),#{applyer},#{otdsc},to_date(#{otstarttime},'YYYY-MM-DD hh24:mi:ss'),to_date(#{predictendtime},'YYYY-MM-DD hh24:mi:ss'),sysdate,#{status},'0')
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformOverTimeModel">
+        update TB_PLATFORM_OverTime
+        	set title=#{title},
+        	starttime = to_date(#{starttime},'YYYY-MM-DD hh24:mi:ss'),
+        	endtime = to_date(#{endtime},'YYYY-MM-DD hh24:mi:ss'),
+        	content = #{content},
+        	status = #{status}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_OverTime where id in (${params})
+    </delete>
+    
+    <insert id="updateApproval" parameterType="com.rds.platform.model.RdsPlatformOverTimeModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_OverTime set 
+    		checkidea ='${checkidea}',
+    		checktime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+    
+    <update id="updateSure" parameterType="com.rds.platform.model.RdsPlatformOverTimeModel">
+    	update TB_PLATFORM_OverTime set issure = #{issure} where id=#{id}
+    </update>
+    
+    <update id="updateEndTime" parameterType="com.rds.platform.model.RdsPlatformOverTimeModel">
+    	update TB_PLATFORM_OverTime set otendtime = to_date(#{otendtime},'YYYY-MM-DD hh24:mi:ss') where id=#{id}
+    </update>
+</mapper>

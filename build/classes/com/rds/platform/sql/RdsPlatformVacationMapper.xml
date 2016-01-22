@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformVacationMapper">
+    
+    <resultMap id="vacationModel" type="com.rds.platform.model.RdsPlatformVacationModel">
+	</resultMap>
+	
+    <select id="queryPlatformVacations" resultMap="vacationModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_Vacation t
+    </select>
+    
+    <select id="queryPlatformVacationsPage" parameterType="map" resultMap="vacationModel">
+	    SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+		                       t.vuser,
+		                       t.vtitle,
+		                       t.vdsc,
+		                       to_char(t.vstarttime, 'yyyy-mm-dd hh24:mi:ss') vstarttime,
+		                       to_char(t.vendtime, 'yyyy-mm-dd hh24:mi:ss') vendtime,
+		                       to_char(t.applytime, 'yyyy-mm-dd hh24:mi:ss') applytime,
+		                       t.status,
+		                       t.checktime,
+		                       t.reguser,
+		                       t.checkidea
+		                  FROM tb_platform_Vacation t
+		                 where 1 = 1
+		                 <if test="vtitle!=null and vtitle!=''">
+		                     and vtitle like '%${vtitle}%'
+		                 </if>
+		                 <if test="vdsc!=null and vdsc!=''">
+		                	 and vdsc like '%${vdsc}%'
+		                 </if>
+		                 <if test="applytime!=null and applytime!=''">
+		               		 and to_char(applytime,'yyyy-mm-dd') = #{applytime}
+		                 </if>
+		                 order by applytime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformVacationsPageTotal" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*)
+		                  FROM tb_platform_Vacation t
+		                 where 1 = 1
+		                 <if test="vtitle!=null and vtitle!=''">
+		                     and vtitle like '%${vtitle}%'
+		                 </if>
+		                 <if test="vdsc!=null and vdsc!=''">
+		                	 and vdsc like '%${vdsc}%'
+		                 </if>
+		                 <if test="applytime!=null and applytime!=''">
+		               		 and to_char(applytime,'yyyy-mm-dd') = #{applytime}
+		                 </if>
+		                 order by applytime desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformVacationModel">
+        insert into TB_PLATFORM_Vacation(id,vuser,vtitle,vdsc,vstarttime,vendtime,reguser,applytime,status) 
+        	values(sys_guid(),#{vuser},#{vtitle},#{vdsc},to_date(#{vstarttime},'YYYY-MM-DD hh24:mi:ss'),to_date(#{vendtime},'YYYY-MM-DD hh24:mi:ss'),#{reguser},sysdate,'0')
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformVacationModel">
+        update TB_PLATFORM_Vacation
+        	set vtitle=#{vtitle},
+        	vstarttime = to_date(#{vstarttime},'YYYY-MM-DD hh24:mi:ss'),
+        	vendtime = to_date(#{vendtime},'YYYY-MM-DD hh24:mi:ss'),
+        	vdsc = #{vdsc}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_Vacation where id in (${params})
+    </delete>
+    
+    <insert id="updateApproval" parameterType="com.rds.platform.model.RdsPlatformVacationModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_Vacation set 
+    		checkidea ='${checkidea}',
+    		checktime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+</mapper>

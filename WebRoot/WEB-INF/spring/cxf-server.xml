@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+	xmlns:jaxws="http://cxf.apache.org/jaxws"
+	xsi:schemaLocation=" http://www.springframework.org/schema/beans                     
+					http://www.springframework.org/schema/beans/spring-beans.xsd                       
+					http://cxf.apache.org/jaxrs
+				      http://cxf.apache.org/schemas/jaxrs.xsd
+				      http://cxf.apache.org/jaxws 
+				      http://cxf.apache.org/schemas/jaxws.xsd">
+
+	<!-- xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
+		http://cxf.apache.org/jaxrs classpath:/schemas/jaxrs.xsd" -->
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+
+	<jaxrs:server id="sendAlarms" address="/">
+		<jaxrs:serviceBeans>
+			<ref bean="rdsPlatformAlarmWebService" />
+		</jaxrs:serviceBeans>
+		<jaxrs:providers>
+			<bean class="org.codehaus.jackson.jaxrs.JacksonJsonProvider" />
+		</jaxrs:providers>
+	</jaxrs:server>
+	
+	<jaxrs:server id="updateAlarms" address="/">
+		<jaxrs:serviceBeans>
+			<ref bean="rdsPlatformAlarmWebService" />
+		</jaxrs:serviceBeans>
+		<jaxrs:providers>
+			<bean class="org.codehaus.jackson.jaxrs.JacksonJsonProvider" />
+		</jaxrs:providers>
+	</jaxrs:server>
+	
+	<jaxrs:server id="demo" address="/">
+		<jaxrs:serviceBeans>
+			<ref bean="rdsPlatformAlarmWebService" />
+		</jaxrs:serviceBeans>
+		<jaxrs:providers>
+			<bean class="org.codehaus.jackson.jaxrs.JacksonJsonProvider" />
+		</jaxrs:providers>
+	</jaxrs:server>
+	
+	<jaxws:endpoint id="RdsPlatformAlarmWsdlService" 
+	    implementor="com.rds.platform.webservice.impl.RdsPlatformAlarmWsdlServiceImpl"   
+        address="/AlarmWsdlServiceOld" />
+	
+	<jaxws:endpoint id="itssAlarmServiceBus" 
+	    implementor="com.rds.platform.webservice.impl.itssAlarmServiceBusImpl"   
+        address="/AlarmWsdlService" />
+</beans>

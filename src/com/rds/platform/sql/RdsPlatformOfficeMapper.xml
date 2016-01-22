@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformOfficeMapper">
+    
+    <resultMap id="officeModel" type="com.rds.platform.model.RdsPlatformOfficeModel">
+	</resultMap>
+	
+	<resultMap id="seatModel" type="com.rds.platform.model.RdsPlatformSeatModel">
+	</resultMap>
+	
+	<!-- 没有初始化的办公室 -->
+    <select id="queryPlatformOffices" resultMap="officeModel">
+        select t.id, t.officename
+			  from TB_PLATFORM_OFFICES t
+			  order by officename
+    </select>
+    
+    <select id="queryPlatformOfficesExists" resultMap="officeModel">
+		select t.id, t.officename
+		  from TB_PLATFORM_OFFICES t
+		 where not exists (select *
+		          from tb_platform_seat s
+		         where t.id = s.officeid
+		           and seatstatus = 0)
+		           order by officename
+    </select>
+    
+    <!-- 查找所有没有使用的 座位 -->
+    <select id="queryPlatformSeats" resultMap="seatModel">
+        select t.id, o.officename || '-' || t.seatname seatname
+		  from TB_PLATFORM_SEAT t, tb_platform_offices o
+		 where not exists
+		 (select 1 from tb_platform_entrance en where t.id = en.seatid and en.status='0')
+		   and t.officeid = o.id
+		   and seatstatus = 0
+		   and officestatus = 0
+		 order by o.officename, t.seatname
+    </select>
+    
+    <insert id="updateInitSeat" useGeneratedKeys="false" parameterType="java.util.List">
+    	insert all 
+	    <foreach collection="list" item="item" index="index" separator=" " >  
+	    into TB_PLATFORM_SEAT (id,officeid,seatname,seatstatus)   
+	    values (sys_guid(),#{item.officeid},#{item.seatname},'0')  
+	    </foreach>  
+    	select 1 from dual
+    </insert>
+    
+    <select id="queryPlatformSeatsPage" parameterType="map" resultMap="seatModel">
+    	SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select o.officename, t.seatname
+		                  from TB_PLATFORM_SEAT t, tb_platform_offices o
+		                 where t.officeid = o.id
+		                   and seatstatus = 0
+		                   and officestatus = 0
+		                 <if test="officeid!=null and officeid!=''">
+				            and officeid = #{officeid}
+				        </if> 
+				        order by t.seatname  
+		                 ) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}        
+    </select>
+    
+    <select id="queryPlatformSeatsPageTotal" parameterType="map" resultType="java.lang.Integer">
+    	select count(*) total
+    		from TB_PLATFORM_SEAT t, tb_platform_offices o
+		    	where t.officeid = o.id
+		        and seatstatus = 0
+		        and officestatus = 0
+		        <if test="officeid!=null and officeid!=''">
+		            and officeid = #{officeid}
+		        </if> 
+		        order by t.seatname       
+    </select>
+    
+    <!-- 带状态查询 -->
+    <select id="queryPlatformSeatsStatusPage" parameterType="map" resultMap="seatModel">
+    	SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select o.officename,
+	                       t.seatname,
+	                       e.username,
+	                       to_char(e.departuretime, 'YYYY-MM-DD HH24:MI:SS') departuretime
+		                  from TB_PLATFORM_SEAT     t,
+		                       tb_platform_offices  o,
+		                       TB_PLATFORM_ENTRANCE e
+		                 where t.officeid = o.id
+		                   and t.id = e.seatid(+)
+		                   and seatstatus = 0
+		                   and officestatus = 0
+		                   <if test="officeid!=null and officeid!=''">
+				            and officeid = #{officeid}
+				        </if> 
+		                 order by t.seatname) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}  
+    	       
+    </select>
+    
+    <select id="queryPlatformSeatsStatusPageTotal" parameterType="map" resultType="java.lang.Integer">
+    	select count(*)
+		                  from TB_PLATFORM_SEAT     t,
+		                       tb_platform_offices  o,
+		                       TB_PLATFORM_ENTRANCE e
+		                 where t.officeid = o.id
+		                   and t.id = e.seatid(+)
+		                   and seatstatus = 0
+		                   and officestatus = 0
+		                   <if test="officeid!=null and officeid!=''">
+				            and officeid = #{officeid}
+				        </if> 
+		                 order by t.seatname  
+    </select>
+    
+    <insert id="insertSeat" parameterType="com.rds.platform.model.RdsPlatformSeatModel">
+        insert into TB_PLATFORM_SEAT(id,officeid,seatname,seatstatus) 
+        	values(sys_guid(),#{officeid},#{seatname},'0')
+    </insert>
+    
+    <update id="updateSeat" parameterType="com.rds.platform.model.RdsPlatformSeatModel">
+        update TB_PLATFORM_SEAT
+        	set officeid=#{officeid},
+        	seatname = #{seatname}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="deleteSeat" parameterType="java.lang.String">
+        delete from TB_PLATFORM_NOTICE where id in (${params})
+    </delete>
+</mapper>
