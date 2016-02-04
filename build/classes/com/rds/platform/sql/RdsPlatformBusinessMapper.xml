@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformBusinessMapper">
+    
+    <resultMap id="businessModel" type="com.rds.platform.model.RdsPlatformBusinessModel">
+	</resultMap>
+	
+    <select id="queryPlatformBusiness" resultMap="businessModel">
+        select t.id, t.title, to_char(t.createtime, 'yyyy-mm-dd') createtime, t.creater from TB_PLATFORM_BUSINESS t
+    </select>
+    
+    <select id="queryPlatformBusinessPage" parameterType="map" resultMap="businessModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+					       t.title,
+					       t.content,
+					       to_char(t.createtime, 'yyyy-mm-dd') createtime,
+					       t.creater
+		                  FROM TB_PLATFORM_BUSINESS t
+		                 where 1 =1 
+		                 <if test="title!=null and title!=''">
+		                     and title like '%${title}%'
+		                 </if>
+		                 <if test="content!=null and content!=''">
+		                	 and content like '%${content}%'
+		                 </if>
+		                 <if test="createtime!=null and createtime!=''">
+		               		 and createtime = to_date(#{createtime}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by createtime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> 25)
+		 WHERE RN >= 0
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformBusinessModel">
+        insert into TB_PLATFORM_BUSINESS 
+        	values(sys_guid(),#{title},to_date(#{createtime},'YYYY-MM-DD'),#{creater},#{content},#{permission})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformBusinessModel">
+        update TB_PLATFORM_BUSINESS
+        	set title=#{title},
+        	createtime = to_date(#{createtime},'YYYY-MM-DD'),
+        	content = #{content},
+        	creater = #{creater}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_BUSINESS where id in (${params})
+    </delete>
+</mapper>

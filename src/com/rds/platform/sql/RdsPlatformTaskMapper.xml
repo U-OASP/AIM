@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformTaskMapper">
+    
+    <resultMap id="mainTaskModel" type="com.rds.platform.model.RdsPlatformTaskMainModel">
+	</resultMap>
+	
+	<resultMap id="subTaskModel" type="com.rds.platform.model.RdsPlatformTaskSubModel">
+	</resultMap>
+	
+    <select id="queryPlatformSubTasks" resultMap="mainTaskModel">
+        select t.id,
+		       t.tasktitle,
+		       t.taskmark,
+		       to_char(t.completetime,'YYYY-MM-DD') completetime,
+		       t.pressing,
+		       sum(u.status) / count(*) status,
+		       t.userid,
+		       to_char(t.createtime,'YYYY-MM-DD') createtime
+		  from tb_platform_task_sub t, tb_platform_task_sub_users u
+		 where t.id = u.subtaskid
+		 <if test="pid!=null and pid!=''">
+		 	and t.pid = #{pid}
+		 </if>
+		  group by t.id,
+	          t.tasktitle,
+	          completetime,
+	          pressing,
+	          createtime,
+	          t.userid,
+	          t.taskmark
+		 
+    </select>
+    
+    <select  id="queryPlatformSubTasksByUser" resultMap="mainTaskModel">
+    	select t.id,
+	       t.tasktitle,
+	       t.taskmark,
+	       to_char(t.completetime, 'YYYY-MM-DD') completetime,
+	       t.pressing,
+	       u.status,
+	       t.userid,
+	       u.userid,
+	       to_char(t.createtime, 'YYYY-MM-DD') createtime
+	  from tb_platform_task_sub t, tb_platform_task_sub_users u
+	 where t.id = u.subtaskid
+	 and u.userid = #{userid}
+    </select>
+    
+    <select id="queryPlatformMainTasksPage" parameterType="map" resultMap="mainTaskModel">
+    	SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select m.id,
+		                       m.tasktitle,
+		                       m.taskmark,
+		                       to_char(m.completetime,'YYYY-MM-DD') completetime,
+		                       m.pressing,
+		                       m.status,
+		                       to_char(m.createtime,'YYYY-MM-DD') createtime,
+		                       to_char(m.checketime,'YYYY-MM-DD') checketime,
+		                       m.checkidea,
+		                       m.creater,
+		                       m.issure,
+		                       (select case
+		                                 when sum(decode(s.status, 1, 1, 0)) <![CDATA[<]]>
+		                                      count(s.status) then
+		                                  '未完成'
+		                                 else
+		                                  '完成'
+		                               end
+		                          from tb_platform_task_sub s
+		                         where s.pid = m.id
+		                         group by s.pid) substatus
+		                  from tb_platform_task_main m
+		                  where 1=1
+		                  <if test="tasktitle!=null and tasktitle!=''">
+		                     and tasktitle like '%${tasktitle}%'
+		                 </if>
+		                 <if test="taskmark!=null and taskmark!=''">
+		                     and taskmark like '%${taskmark}%'
+		                 </if>
+		                 <if test="completetime!=null and completetime!=''">
+		                     and completetime = to_date(#{completetime}, 'yyyy-mm-dd')
+		                 </if>
+		                 )A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformMainTasksPageTotal" parameterType="map" resultType="java.lang.Integer">
+        select count(*) from tb_platform_task_main m where 1=1
+		                  <if test="tasktitle!=null and tasktitle!=''">
+		                     and tasktitle like '%${tasktitle}%'
+		                 </if>
+		                 <if test="taskmark!=null and taskmark!=''">
+		                     and taskmark like '%${taskmark}%'
+		                 </if>
+		                 <if test="completetime!=null and completetime!=''">
+		                     and completetime = to_date(#{completetime}, 'yyyy-mm-dd')
+		                 </if>
+    </select>
+    
+    <insert id="insertMainTask" parameterType="com.rds.platform.model.RdsPlatformTaskMainModel" useGeneratedKeys="false">
+    begin
+        insert into TB_PLATFORM_TASK_MAIN(id,tasktitle,taskmark,completetime,createtime,pressing,status,creater) 
+        	values(#{id},#{tasktitle},#{taskmark},to_date(#{completetime},'YYYY-MM-DD'),sysdate,#{pressing},'0',#{creater});
+        insert into TB_PLATFORM_TASK_SUB(id,tasktitle,taskmark,completetime,createtime,pressing,status,pid) 
+        	values(sys_guid(),#{tasktitle},#{taskmark},to_date(#{completetime},'YYYY-MM-DD'),sysdate,#{pressing},'0',#{id});
+    end;
+    </insert>
+    
+    <insert id="insertSubTask" parameterType="com.rds.platform.model.RdsPlatformTaskSubModel">
+        insert into TB_PLATFORM_TASK_SUB(id,tasktitle,taskmark,completetime,createtime,pressing,status,pid,issure) 
+        	values(#{id},#{tasktitle},#{taskmark},to_date(#{completetime},'YYYY-MM-DD'),sysdate,#{pressing},'0',#{pid},'0')
+    </insert>
+    
+    <update id="updateMainTask" parameterType="com.rds.platform.model.RdsPlatformTaskMainModel">
+        update TB_PLATFORM_TASK_MAIN
+        	set tasktitle=#{tasktitle},
+        	completetime = to_date(#{completetime},'YYYY-MM-DD'),
+        	taskmark = #{taskmark},
+        	pressing = #{pressing}
+        	 where id = #{id}
+    </update>
+    
+    <update id="updateSubTask" parameterType="com.rds.platform.model.RdsPlatformTaskSubModel">
+        update TB_PLATFORM_TASK_Sub
+        	set tasktitle=#{tasktitle},
+        	completetime = to_date(#{completetime},'YYYY-MM-DD'),
+        	taskmark = #{taskmark},
+        	userid = #{userid},
+        	pressing = #{pressing}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="deleteMainTask" parameterType="java.lang.String">
+    begin
+        delete from TB_PLATFORM_TASK_MAIN where id in (${params});
+        delete from TB_PLATFORM_TASK_sub where pid in(${params});
+    end;
+    </delete>
+    
+    <insert id="updateMainTaskApproval" parameterType="com.rds.platform.model.RdsPlatformTaskMainModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_TASK_MAIN set 
+    		checkidea ='${checkidea}',
+    		checketime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+    
+    <update id="updateSubsComplete" parameterType="map">
+    	update TB_PLATFORM_TASK_SUB_USERS set status = '1' where subtaskid in(${ids}) and userid=#{userid}
+    </update>
+    
+    <insert id="updateTaskFeedBack" parameterType="com.rds.platform.model.RdsPlatformTaskFeedBackModel">
+    	insert into TB_PLATFORM_TASK_FEEDBACK(id,fbtime,fbmark,taskid,filepath,filename)
+    	values(sys_guid(),sysdate,#{fbmark},#{taskid},#{filepath},#{filename})
+    </insert>
+    
+	<resultMap id="feedbackModel" type="com.rds.platform.model.RdsPlatformTaskFeedBackModel">
+	</resultMap>
+    
+    <select id="queryPlatformTaskFeedBack" parameterType="java.lang.String" resultMap="feedbackModel">
+    	select * from TB_PLATFORM_TASK_FEEDBACK t where taskid = #{taskid}
+    </select>
+    
+    <delete id="updateSure" parameterType="java.lang.String">
+        update TB_PLATFORM_TASK_MAIN set issure = '1' where id in (${params})
+    </delete>
+    
+    <insert id="updateSubUsers" useGeneratedKeys="false" parameterType="java.util.List">
+    	insert all 
+	    <foreach collection="list" item="item" index="index" separator=" " >  
+	    into TB_PLATFORM_TASK_SUB_USERS (id,subtaskid,userid,status)   
+	    values (sys_guid(),#{item.subtaskid},#{item.userid},'0')  
+	    </foreach>  
+    	select 1 from dual
+    </insert>
+    
+    <delete id="deleteSubUsers" parameterType="java.lang.String">
+    	delete from TB_PLATFORM_TASK_SUB_USERS where subtaskid = #{id}
+    </delete>
+</mapper>

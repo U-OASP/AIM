@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformComposeMapper">
+    
+    <resultMap id="composeModel" type="com.rds.platform.model.RdsPlatformComposeModel">
+	</resultMap>
+	<resultMap id="composeResultModel" type="com.rds.platform.model.RdsPlatformComposeResultModel">
+	</resultMap>
+    <select id="queryPlatformComposes" resultMap="composeModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_Compose t
+    </select>
+    
+    <select id="queryPlatformComposesPage" parameterType="map" resultMap="composeResultModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select w.day,
+		          		w.flag,w.week_day,
+				       max(decode(r.flag, '1', r.username)) as morning,
+				       max(decode(r.flag, '2', r.username)) as night
+				  from TB_PLATFORM_COMPOSE_RESULT r, tb_platform_compose_workday w
+				 where r.composeid = w.id
+				 <if test="startday!=null and startday!=''">
+				  	and day >= '${startday}'
+				 </if>
+				 <if test="endday!=null and endday!=''">
+				  	and day <![CDATA[<=]]> '${endday}'
+				 </if>
+				 group by w.day,w.flag,w.week_day
+				 order by w.day) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformComposesPageTotal" parameterType="map" resultType="java.lang.Integer">
+        select count(count(w.day)) total
+		  from TB_PLATFORM_COMPOSE_RESULT r, tb_platform_compose_workday w
+		 where r.composeid = w.id
+		 <if test="startday!=null and startday!=''">
+		  	and day >= '${startday}'
+		 </if>
+		 <if test="endday!=null and endday!=''">
+		  	and day <![CDATA[<=]]> '${endday}'
+		 </if>
+		 group by w.day
+		 order by w.day
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformComposeModel">
+        insert into TB_PLATFORM_Compose(id,title,content,starttime,endtime,reguser,regtime,status,goouter) 
+        	values(sys_guid(),#{title},#{content},to_date(#{starttime},'YYYY-MM-DD hh24:mi:ss'),to_date(#{endtime},'YYYY-MM-DD hh24:mi:ss'),#{reguser},sysdate,#{status},#{goouter})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformComposeModel">
+        update TB_PLATFORM_Compose
+        	set title=#{title},
+        	starttime = to_date(#{starttime},'YYYY-MM-DD hh24:mi:ss'),
+        	endtime = to_date(#{endtime},'YYYY-MM-DD hh24:mi:ss'),
+        	content = #{content},
+        	status = #{status}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_Compose where id in (${params})
+    </delete>
+    
+    <insert id="updateApproval" parameterType="com.rds.platform.model.RdsPlatformComposeModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_Compose set 
+    		approval ='${approval}',
+    		approvaltime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+    
+    <select id="queryComposeInit" resultType="HashMap">
+    	select t.lot,to_char(t.nexttime,'yyyy-mm-dd') nexttime,t.step,t.pda from TB_PLATFORM_COMPOSE_INIT t where rownum = 1
+    </select>
+    
+    <select id="queryComposeUsers" resultType="com.rds.platform.model.RdsPlatformComposeUsersModel">
+    	select * from TB_PLATFORM_COMPOSE_USERS
+    </select>
+    
+    <select id="queryComposes" parameterType="map" resultMap="composeModel">
+    	select t.*
+		  from tb_platform_compose_workday t
+		 where day >= #{day}
+		 and rownum<![CDATA[<=]]>#{size}
+		 order by day
+    </select>
+    
+    <insert id="insertComposeResult" useGeneratedKeys="false" parameterType="java.util.List">
+    	insert all 
+	    <foreach collection="list" item="item" index="index" separator=" " >  
+	    into TB_PLATFORM_COMPOSE_RESULT (id,composeid,username,flag)   
+	    values (sys_guid(),#{item.composeid},#{item.username},#{item.flag})  
+	    </foreach>  
+    	select 1 from dual
+    </insert>
+    
+    <update id="updateComposeInit" parameterType="map">
+    	update TB_PLATFORM_COMPOSE_init set lot = #{lot},nexttime=to_date(#{nexttime},'yyyy-MM-dd')
+    </update>
+    
+    <select id="queryPlatformComposeHolidays" parameterType="map" resultMap="composeModel" >
+   		SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select * from tb_platform_compose_workday t
+				 where 1=1
+				 <if test="startday!=null and startday!=''">
+				  	and day >= '${startday}'
+				 </if>
+				 <if test="endday!=null and endday!=''">
+				  	and day <![CDATA[<=]]> '${endday}'
+				 </if>) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <select id="queryPlatformComposeHolidaysTotal" parameterType="map" resultType="java.lang.Integer" >
+   		 	select Count(*) from tb_platform_compose_workday t
+				 where 1=1
+				 <if test="startday!=null and startday!=''">
+				  	and day >= '${startday}'
+				 </if>
+				 <if test="endday!=null and endday!=''">
+				  	and day <![CDATA[<=]]> '${endday}'
+				 </if>
+    </select>
+    
+    <update id="updatePlatformComposeDownAndUp" parameterType="map">
+    	update tb_platform_compose_workday set flag = #{flag} where id in(${ids})
+    </update>
+</mapper>

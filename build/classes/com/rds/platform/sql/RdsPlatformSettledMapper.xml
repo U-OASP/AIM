@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformSettledMapper">
+    
+    <resultMap id="settledModel" type="com.rds.platform.model.RdsPlatformSettledModel">
+	</resultMap>
+	
+    <select id="queryPlatformSettleds" resultMap="settledModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_Settled t
+    </select>
+    
+    <select id="queryPlatformSettledsPage" parameterType="map" resultMap="settledModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+		                       t.settledcompany,
+		                       t.settledtilte,
+		                       to_char(t.settledtitme, 'yyyy-mm-dd') settledtitme,
+		                       t.settledmark,
+		                       t.settledcount,
+		                       to_char(t.applytime, 'yyyy-mm-dd') applytime,
+		                       to_char(t.checktime, 'yyyy-mm-dd') checktime,
+		                       t.checkresult,
+		                       t.checkidea,
+		                       t.status
+		                  FROM tb_platform_Settled t
+		                 where 1 =1 
+		                 <if test="settledtilte!=null and settledtilte!=''">
+		                     and settledtilte like '%${settledtilte}%'
+		                 </if>
+		                 <if test="settledcompany!=null and settledcompany!=''">
+		                     and settledcompany like '%${settledcompany}%'
+		                 </if>
+		                 <if test="settledmark!=null and settledmark!=''">
+		                	 and settledmark like '%${settledmark}%'
+		                 </if>
+		                 <if test="settledtitme!=null and settledtitme!=''">
+		               		 and settledtitme = to_date(#{settledtitme}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by settledtitme desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN >= #{start}
+    </select>
+    
+    <select id="queryPlatformSettledsPageTotal" parameterType="map" resultType="java.lang.Integer">
+        SELECT count(*)
+		                  FROM tb_platform_Settled t
+		                 where 1 =1 
+		                 <if test="settledtilte!=null and settledtilte!=''">
+		                     and settledtilte like '%${settledtilte}%'
+		                 </if>
+		                 <if test="settledcompany!=null and settledcompany!=''">
+		                     and settledcompany like '%${settledcompany}%'
+		                 </if>
+		                 <if test="settledmark!=null and settledmark!=''">
+		                	 and settledmark like '%${settledmark}%'
+		                 </if>
+		                 <if test="settledtitme!=null and settledtitme!=''">
+		               		 and settledtitme = to_date(#{settledtitme}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by settledtitme desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformSettledModel">
+        insert into TB_PLATFORM_Settled(id,settledcompany,settledtilte,settledmark,settledtitme,applytime,status,settledcount) 
+        	values(sys_guid(),#{settledcompany},#{settledtilte},#{settledmark},to_date(#{settledtitme},'YYYY-MM-DD'),sysdate,'1',#{settledcount})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformSettledModel">
+        update TB_PLATFORM_Settled
+        	set settledcompany=#{settledcompany},
+        	settledtilte=#{settledtilte},
+        	settledtitme = to_date(#{settledtitme},'YYYY-MM-DD'),
+        	settledcount = #{settledcount},
+        	settledmark = #{settledmark}
+        where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_Settled where id in (${params})
+    </delete>
+    
+    <insert id="updateApproval" parameterType="com.rds.platform.model.RdsPlatformSettledModel" useGeneratedKeys="false">
+    	update TB_PLATFORM_Settled set 
+    		checkidea ='${checkidea}',
+    		checktime = sysdate,
+    		status = '${status}'
+    	where id = '${id}'
+    </insert>
+</mapper>

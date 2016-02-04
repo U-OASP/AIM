@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformNoticeMapper">
+    
+    <resultMap id="noticeModel" type="com.rds.platform.model.RdsPlatformNoticeModel">
+	</resultMap>
+	
+    <select id="queryPlatformNotices" resultMap="noticeModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_NOTICE t
+    </select>
+    
+    <select id="queryPlatformNoticesPage" parameterType="map" resultMap="noticeModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.id,
+					       t.title,
+					       t.content,
+					       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+					       t.publisher,
+					       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+					       to_char(t.endtime, 'yyyy-mm-dd') endtime
+		                  FROM tb_platform_notice t
+		                 where 1 =1 
+		                 <if test="title!=null and title!=''">
+		                     and title like '%${title}%'
+		                 </if>
+		                 <if test="content!=null and content!=''">
+		                	 and content like '%${content}%'
+		                 </if>
+		                 <if test="publishtime!=null and publishtime!=''">
+		               		 and publishtime = to_date(#{publishtime}, 'yyyy-mm-dd')
+		                 </if>
+		                 
+		                 order by publishtime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN >= #{start}
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformNoticeModel">
+        insert into TB_PLATFORM_NOTICE(id,title,content,publishtime,publisher,starttime,endtime,permission) 
+        	values(sys_guid(),#{title},#{content},to_date(#{publishtime},'YYYY-MM-DD'),#{publisher},to_date(#{starttime},'YYYY-MM-DD'),to_date(#{endtime},'YYYY-MM-DD'),#{permission})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformNoticeModel">
+        update TB_PLATFORM_NOTICE
+        	set title=#{title},
+        	publishtime = to_date(#{publishtime},'YYYY-MM-DD'),
+        	starttime = to_date(#{starttime},'YYYY-MM-DD'),
+        	endtime = to_date(#{endtime},'YYYY-MM-DD'),
+        	content = #{content},
+        	publisher = #{publisher}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_NOTICE where id in (${params})
+    </delete>
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformUserInfoMapper">
+
+	<resultMap id="treeNodeModel"
+		type="com.rds.platform.model.common.RdsPlatformTreeNodeModel">
+	</resultMap>
+
+	<resultMap id="userinfoModel"
+		type="com.rds.platform.model.RdsPlatformUserInfoModel">
+	</resultMap>
+
+	<resultMap id="jsonnode" type="com.rds.platform.web.common.TreeJson">
+	</resultMap>
+
+	<select id="queryPlatformUserInfos" resultMap="jsonnode">
+		SELECT t.user_id id, t.loginname text, t.parent_id pid
+		FROM USER_INFO t
+		start with t.parent_id = 0
+		connect by t.parent_id = prior t.user_id and
+		t.user_type = '1'
+		ORDER SIBLINGS BY T.user_id
+	</select>
+	
+	<select id="queryPlatformUserInfosByDepartment" resultMap="userinfoModel">
+		select t.user_id userid, t.loginname loginname, t.username username
+		  from USER_INFO t
+		 where user_type = 0
+		   and parent_id = #{userid}
+	</select>
+
+	<select id="queryPlatformAllUserInfos" resultMap="userinfoModel">
+		SELECT t.user_id userid, t.loginname loginname, t.username username
+		FROM USER_INFO t
+		where t.user_type = '0'
+	</select>
+	
+	<select id="queryPlatformAllDepartments" resultMap="userinfoModel">
+		select t.user_id userid, t.loginname loginname, t.username username
+		  from USER_INFO t
+		 where user_type = 1
+		   and parent_id = '0'
+	</select>
+	
+</mapper>

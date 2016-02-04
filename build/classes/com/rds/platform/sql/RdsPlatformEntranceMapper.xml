@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformEntranceMapper">
+    
+    <resultMap id="entranceModel" type="com.rds.platform.model.RdsPlatformEntranceModel">
+	</resultMap>
+	
+    <select id="queryPlatformEntrances" resultMap="entranceModel">
+        select t.id,
+	       t.title,
+	       t.content,
+	       to_char(t.publishtime, 'yyyy-mm-dd') publishtime,
+	       t.publisher,
+	       to_char(t.starttime, 'yyyy-mm-dd') starttime,
+			to_char(t.endtime, 'yyyy-mm-dd') endtime
+	  from TB_PLATFORM_Entrance t
+    </select>
+    
+    <select id="queryPlatformEntrancesPage" parameterType="map" resultMap="entranceModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (select 
+		          			t.id,
+						       t.username,
+						       to_char(t.entrancetime, 'yyyy-mm-dd hh24:mi:ss') entrancetime,
+						       t.seatid,
+						       t.mark,
+						       t.account,
+						       t.status,
+						       to_char(t.departuretime, 'yyyy-mm-dd hh24:mi:ss') departuretime,
+						       t.sex,
+						       t.card,
+						       t.settledid,
+						       s.settledtilte,
+						       o.officename || '-' || st.seatname seatname
+						  from TB_PLATFORM_ENTRANCE t, tb_platform_seat st, tb_platform_offices o,TB_PLATFORM_SETTLED s
+						 where t.seatid = st.id
+						   and st.officeid = o.id
+						   and t.settledid = s.id
+		                 <if test="username!=null and username!=''">
+		                     and username like '%${username}%'
+		                 </if>
+		                 <if test="card!=null and card!=''">
+		                	 and card like '%${card}%'
+		                 </if>
+		                 <if test="entrancetime!=null and entrancetime!=''">
+		               		 and to_char(entrancetime, 'yyyy-mm-dd') = #{entrancetime}
+		                 </if>
+		                 
+		                 <if test="entrancetime!=null and entrancetime!=''">
+		               		 and to_char(departuretime, 'yyyy-mm-dd') = #{departuretime}
+		                 </if>
+		                 order by entrancetime desc) A
+		         WHERE ROWNUM <![CDATA[<=]]> #{end})
+		 WHERE RN >= #{start}
+    </select>
+    
+    <select id="queryPlatformEntrancesPageTotal" parameterType="map" resultType="java.lang.Integer">
+        select count(*) total
+						  from TB_PLATFORM_ENTRANCE t, tb_platform_seat st, tb_platform_offices o,TB_PLATFORM_SETTLED s
+						 where t.seatid = st.id
+						   and st.officeid = o.id
+						   and t.settledid = s.id
+		                 <if test="username!=null and username!=''">
+		                     and username like '%${username}%'
+		                 </if>
+		                 <if test="card!=null and card!=''">
+		                	 and card like '%${card}%'
+		                 </if>
+		                 <if test="entrancetime!=null and entrancetime!=''">
+		               		 and to_char(entrancetime, 'yyyy-mm-dd') = #{entrancetime}
+		                 </if>
+		                 <if test="entrancetime!=null and entrancetime!=''">
+		               		 and to_char(departuretime, 'yyyy-mm-dd') = #{departuretime}
+		                 </if>
+		                 order by entrancetime desc
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformEntranceModel">
+        insert into TB_PLATFORM_Entrance(id,settledid, username,mark,entrancetime,account,seatid,status,sex,card) 
+        	values(sys_guid(),#{settledid},#{username},#{mark},sysdate,#{account},#{seatid},'0',#{sex},#{card})
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformEntranceModel">
+        update TB_PLATFORM_Entrance
+        	set username=#{username},
+        	mark = #{mark},
+        	settledid=#{settledid},
+        	account = #{account},
+        	seatid = #{seatid},
+        	sex = #{sex},
+        	card = #{card}
+        	 where id = #{id}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        delete from TB_PLATFORM_Entrance where id in (${params})
+    </delete>
+    
+    <update id="updateOutEntrances" parameterType="java.lang.String">
+        update TB_PLATFORM_Entrance
+        	set departuretime=sysdate,
+        	status = '1'
+        	 where id in (${params})
+    </update>
+    
+</mapper>

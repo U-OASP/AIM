@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.rds.platform.mapper.RdsPlatformTrainMapper">
+    
+    <resultMap id="trainModel" type="com.rds.platform.model.RdsPlatformTrainModel">
+	</resultMap>
+	
+    <select id="queryPlatformTrains" resultMap="trainModel">
+        			SELECT t.tid,
+		                       t.ttitle,
+		                       t.tcontent,
+		                       to_char(t.tdate, 'yyyy-mm-dd') tdate,
+		                       t.tuser
+		                  FROM tb_platform_train t
+		                 where 1 = 1 
+		                 <if test = "ttitle!=null and ttitle!=''" >
+		                   and ttitle like '%${ttitle}%'
+		                 </if> 
+		                 <if test = "tcontent!=null and tcontent!=''" >
+		                   and tcontent like '%${tcontent}%' 
+		                 </if> 
+		                 <if test = "tdate!=null and tdate!=''" >
+		                   and tdate = to_date(#{tdate}, 'yyyy-mm-dd') 
+		                 </if>
+		                 order by tdate desc
+    </select>
+    
+    <select id="queryPlatformTrainsPage" parameterType="map" resultMap="trainModel">
+        SELECT *
+		  FROM (SELECT A.*, ROWNUM RN
+		          FROM (SELECT t.tid,
+		                       t.ttitle,
+		                       t.tcontent,
+		                       to_char(t.tdate, 'yyyy-mm-dd') tdate,
+		                       t.tuser
+		                  FROM tb_platform_train t
+		                 where 1 = 1 
+		                 <if test = "ttitle!=null and ttitle!=''" >
+		                   and ttitle like '%${ttitle}%'
+		                 </if> 
+		                 <if test = "tcontent!=null and tcontent!=''" >
+		                   and tcontent like '%${tcontent}%' 
+		                 </if> 
+		                 <if test = "tdate!=null and tdate!=''" >
+		                   and tdate = to_date(#{tdate}, 'yyyy-mm-dd') 
+		                 </if>
+		                 order by tdate desc) A
+		         WHERE ROWNUM <![CDATA[<=]]>#{end})
+		 WHERE RN > #{start}
+    </select>
+    
+    <insert id="insert" parameterType="com.rds.platform.model.RdsPlatformTrainModel">
+        insert into TB_PLATFORM_Train(tid,ttitle,tcontent,tdate,tuser) 
+        	values(sys_guid(),#{ttitle},#{tcontent},to_date(#{tdate},'YYYY-MM-DD'),#{tuser})
+    </insert>
+    
+    <insert id="insertTrainFile" parameterType="map">
+    	insert into tb_platform_train_files(id,path,tid,filename,uploadtime)
+    	values(sys_guid(),#{path},#{tid},#{filename},sysdate)
+    </insert>
+    
+    <update id="update" parameterType="com.rds.platform.model.RdsPlatformTrainModel">
+        update TB_PLATFORM_Train
+        	set ttitle=#{ttitle},
+        	tdate = to_date(#{tdate},'YYYY-MM-DD'),
+        	tcontent = #{tcontent},
+        	tuser = #{tuser}
+        	 where tid = #{tid}
+    </update>
+    
+    <delete id="delete" parameterType="java.lang.String">
+        begin
+        	delete from TB_PLATFORM_Train where tid in (${params});
+        	delete from TB_PLATFORM_TRAIN_FILES where tid in (${params});
+        end;
+    </delete>
+    
+    <resultMap id="trainFilesModel" type="com.rds.platform.model.RdsPlatformTrainFileModel">
+	</resultMap>
+    
+    <select id="queryPlatformTrainFiles" parameterType="map" resultMap="trainFilesModel">
+	    select *
+		  from tb_platform_train_files
+		 where tid = #{tid}
+    </select>
+</mapper>
